@@ -104,6 +104,13 @@
             color: white;
         }
 
+        .error-msg {
+            color: #d9381e;
+            font-size: 0.85em;
+            margin-top: 15px;
+            display: none;
+        }
+
         /* App Main Board Styling */
         .board-container {
             display: none;
@@ -433,6 +440,7 @@
                     Continue as Guest
                 </button>
             </div>
+            <div class="error-msg" id="authError"></div>
         </div>
     </div>
 
@@ -513,61 +521,72 @@
     </div>
 
     <script>
-        // --- MSAL Microsoft Auth Setup ---
+        // --- MSAL Configuration ---
         const msalConfig = {
             auth: {
                 clientId: "B44847b6-2c51-4888-a9b0-251cd1af998f",
                 authority: "https://login.microsoftonline.com/common",
                 redirectUri: "https://vng230-dotcom.github.io/Kanban-Board/"
             },
-            cache: { cacheLocation: "sessionStorage" }
+            cache: {
+                cacheLocation: "localStorage",
+                storeAuthStateInCookie: true
+            }
         };
 
         const msalInstance = new msal.PublicClientApplication(msalConfig);
-
         let currentUser = null;
         let tasks = [];
 
         window.addEventListener('DOMContentLoaded', async () => {
-            await msalInstance.handleRedirectPromise().catch(err => console.error(err));
-            
-            const sessionGuest = sessionStorage.getItem('isGuest');
-            const accounts = msalInstance.getAllAccounts();
+            try {
+                const redirectResponse = await msalInstance.handleRedirectPromise();
+                
+                if (redirectResponse) {
+                    currentUser = { name: redirectResponse.account.name, email: redirectResponse.account.username };
+                    localStorage.setItem('authType', 'msft');
+                    showBoardView();
+                    return;
+                }
 
-            if (sessionGuest === 'true') {
-                currentUser = { name: "Guest User", email: "guest@local" };
-                showBoardView();
-            } else if (accounts.length > 0) {
-                currentUser = { name: accounts[0].name, email: accounts[0].username };
-                showBoardView();
-            } else {
-                showAuthView();
+                const sessionType = localStorage.getItem('authType');
+                const accounts = msalInstance.getAllAccounts();
+
+                if (sessionType === 'guest') {
+                    currentUser = { name: "Guest User", email: "guest@local" };
+                    showBoardView();
+                } else if (accounts.length > 0) {
+                    currentUser = { name: accounts[0].name, email: accounts[0].username };
+                    showBoardView();
+                } else {
+                    showAuthView();
+                }
+            } catch (err) {
+                showError("Microsoft authentication failed: " + err.message);
             }
         });
 
         // --- Auth Handlers ---
         async function signInWithMicrosoft() {
+            hideError();
             try {
-                const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
-                currentUser = { name: loginResponse.account.name, email: loginResponse.account.username };
-                sessionStorage.removeItem('isGuest');
-                showBoardView();
+                await msalInstance.loginRedirect({ scopes: ["User.Read"] });
             } catch (err) {
-                console.error("Microsoft Sign-In Failed:", err);
+                showError(err.message);
             }
         }
 
         function loginAsGuest() {
-            sessionStorage.setItem('isGuest', 'true');
+            localStorage.setItem('authType', 'guest');
             currentUser = { name: "Guest User", email: "guest@local" };
             showBoardView();
         }
 
         function logout() {
-            sessionStorage.clear();
+            localStorage.clear();
             const accounts = msalInstance.getAllAccounts();
             if (accounts.length > 0) {
-                msalInstance.logoutPopup().then(() => location.reload());
+                msalInstance.logoutRedirect();
             } else {
                 location.reload();
             }
@@ -584,6 +603,16 @@
             document.getElementById("activeUserEmail").innerText = `${currentUser.name} (${currentUser.email})`;
             loadTasks();
             renderBoard();
+        }
+
+        function showError(msg) {
+            const errDiv = document.getElementById("authError");
+            errDiv.innerText = msg;
+            errDiv.style.display = "block";
+        }
+
+        function hideError() {
+            document.getElementById("authError").style.display = "none";
         }
 
         // --- Task Data Storage ---
