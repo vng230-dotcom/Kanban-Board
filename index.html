@@ -3,90 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
-    <!-- MSAL.js Library -->
-    <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+    <title>Task Manager - Full Application with Auth & Guest Mode</title>
+    <!-- Microsoft Authentication Library (MSAL.js) -->
+    <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
     <style>
         :root {
             --primary: #0066cc;
+            --primary-hover: #0052a3;
             --danger: #d9534f;
-            --bg: #eef2f5;
+            --bg: #f4f7f6;
             --card-bg: #ffffff;
+            --column-bg: #e2e8f0;
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg);
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
         }
 
-        /* Authentication Screen */
+        /* Auth Screen Styling */
         .auth-container {
-            background-color: var(--card-bg);
-            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .auth-card {
+            background: white;
+            padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             text-align: center;
-            width: 100%;
             max-width: 400px;
+            width: 90%;
         }
 
-        .auth-container h2 {
-            margin-bottom: 8px;
-            color: #1a252f;
+        .auth-card h1 {
+            margin-top: 0;
+            color: #1e293b;
+            font-size: 1.8em;
         }
 
-        .auth-container p {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 20px;
+        .auth-card p {
+            color: #64748b;
+            font-size: 0.95em;
+            margin-bottom: 25px;
         }
 
-        .input-group {
-            margin-bottom: 15px;
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 1em;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-            border: none;
+        .btn-auth {
             padding: 12px 20px;
-            width: 100%;
             border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.95em;
             cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            transition: background 0.2s;
+            border: none;
+            transition: transform 0.1s, background 0.2s;
         }
 
-        .btn-primary:hover {
-            background-color: #0052a3;
+        .btn-auth:active {
+            transform: scale(0.98);
         }
 
-        .status-message {
-            margin-top: 15px;
-            font-size: 0.85em;
-            font-weight: bold;
+        .btn-msft {
+            background-color: #2f2f2f;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        /* Task Board Application Screen */
+        .btn-msft:hover {
+            background-color: #1a1a1a;
+        }
+
+        .btn-guest {
+            background-color: #cbd5e1;
+            color: #334155;
+        }
+
+        .btn-guest:hover {
+            background-color: #94a3b8;
+            color: white;
+        }
+
+        /* App Main Board Styling */
         .board-container {
             display: none;
-            width: 90%;
+            width: 95%;
             max-width: 1200px;
             margin: 20px auto;
         }
@@ -100,6 +119,49 @@
             padding: 15px 25px;
             border-radius: 8px;
             margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .top-action-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .btn-create {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-create:hover {
+            background-color: #059669;
         }
 
         .board-columns {
@@ -109,10 +171,11 @@
 
         .column {
             flex: 1;
-            background-color: #e2e8f0;
+            background-color: var(--column-bg);
             padding: 15px;
             border-radius: 8px;
-            min-height: 400px;
+            min-height: 500px;
+            box-sizing: border-box;
         }
 
         .column h3 {
@@ -120,195 +183,656 @@
             color: #334155;
             border-bottom: 2px solid #cbd5e1;
             padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
         }
 
         .task-card {
             background: white;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+            cursor: grab;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .task-card:active {
+            cursor: grabbing;
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
         }
 
         .task-card h4 {
-            margin: 0 0 5px 0;
+            margin: 0 0 8px 0;
             color: #1e293b;
+            font-size: 1em;
         }
 
-        .task-card p {
-            margin: 0;
+        .task-desc {
+            font-size: 0.85em;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 0.8em;
             color: #64748b;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.7em;
+        }
+
+        .badge-high { background-color: #ffebe9; color: #d9381e; }
+        .badge-medium { background-color: #fff8e6; color: #b7791f; }
+        .badge-low { background-color: #e6fffa; color: #234e52; }
+
+        .subtasks-section {
+            background-color: #f8fafc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 10px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .subtasks-title {
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #64748b;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82em;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+
+        .subtask-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .subtask-item.completed span {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+        }
+
+        .btn-action:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-edit {
+            background: #e0f2fe;
+            border-color: #7dd3fc;
+            color: #0369a1;
+        }
+
+        .btn-edit:hover {
+            background: #bae6fd;
+        }
+
+        .btn-delete {
+            color: var(--danger);
+            border-color: #f87171;
+            background: #fef2f2;
+            margin-left: auto;
+        }
+
+        .btn-delete:hover {
+            background: #fee2e2;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.9em;
+        }
+
+        .subtask-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .subtask-input-row input[type="text"] {
+            flex: 1;
+        }
+
+        .btn-remove-sub {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .btn-add-sub {
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background: #cbd5e1;
+            color: #334155;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. Authentication View -->
-    <div class="auth-container" id="auth-screen">
-        <h2>Task Board Login</h2>
-        <p>Verify your account against your OneDrive access list.</p>
-        
-        <div class="input-group">
-            <input type="email" id="emailInput" placeholder="Enter your email address" value="vng230@gmail.com">
+    <!-- 1. Authentication Screen -->
+    <div class="auth-container" id="authScreen">
+        <div class="auth-card">
+            <h1>Task Board</h1>
+            <p>Select your entry mode to manage tasks and activities.</p>
+            <div class="auth-buttons">
+                <button class="btn-auth btn-msft" onclick="signInWithMicrosoft()">
+                    <svg width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
+                    Sign in with Microsoft
+                </button>
+                <button class="btn-auth btn-guest" onclick="loginAsGuest()">
+                    Continue as Guest
+                </button>
+            </div>
         </div>
-        
-        <button class="btn-primary" onclick="authenticateUser()">Sign In with OneDrive</button>
-        
-        <div class="status-message" id="auth-status"></div>
     </div>
 
-    <!-- 2. Application Dashboard View -->
-    <div class="board-container" id="app-screen">
+    <!-- 2. Main Board View -->
+    <div class="board-container" id="boardApp">
         <div class="board-header">
-            <h2>OneDrive Task Board</h2>
-            <div>
-                <span id="activeUserEmail" style="margin-right: 15px; font-size: 0.9em;"></span>
-                <button onclick="logout()" style="padding: 6px 12px; cursor: pointer;">Sign Out</button>
+            <h2 style="margin: 0;">Task Board</h2>
+            <div class="user-info">
+                <span id="activeUserEmail" style="font-size: 0.9em; font-weight: 500;"></span>
+                <button class="btn-logout" onclick="logout()">Sign Out</button>
             </div>
         </div>
 
-        <div class="board-columns" id="boardColumns">
-            <div class="column">
-                <h3>To Do</h3>
+        <div class="top-action-bar">
+            <button class="btn-create" onclick="openCreateModal()">+ Create New Task</button>
+        </div>
+
+        <div class="board-columns">
+            <div class="column" ondragover="allowDrop(event)" ondrop="drop(event, 'To Do')">
+                <h3>To Do <span id="count-todo">(0)</span></h3>
                 <div id="todo-tasks"></div>
             </div>
-            <div class="column">
-                <h3>In Progress</h3>
+
+            <div class="column" ondragover="allowDrop(event)" ondrop="drop(event, 'In Progress')">
+                <h3>In Progress <span id="count-inprogress">(0)</span></h3>
                 <div id="inprogress-tasks"></div>
             </div>
-            <div class="column">
-                <h3>Completed</h3>
+
+            <div class="column" ondragover="allowDrop(event)" ondrop="drop(event, 'Completed')">
+                <h3>Completed <span id="count-completed">(0)</span></h3>
                 <div id="completed-tasks"></div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Configured Azure Application (client) ID
-        const AZURE_CLIENT_ID = "b44847b6-2c51-4888-a9b0-251cd1af998f";
+    <!-- 3. Modal Popup for Creating / Editing Cards -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <h3 id="modalTitleText">Add New Task</h3>
+            <input type="hidden" id="editingTaskId" value="">
 
+            <div class="form-group">
+                <label>Task Name</label>
+                <input type="text" id="modalTitle" placeholder="e.g. Prepare Presentation">
+            </div>
+
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea id="modalDesc" rows="2" placeholder="Brief summary..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Priority</label>
+                    <select id="modalPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Due Date</label>
+                    <input type="date" id="modalDueDate">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Sub-Activities / Checklist</label>
+                <div id="subtasksListContainer"></div>
+                <button type="button" class="btn-add-sub" onclick="addSubtaskField()">+ Add Sub-activity</button>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                <button class="btn-create" onclick="saveTaskFromModal()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- MSAL Microsoft Auth Setup ---
         const msalConfig = {
             auth: {
-                clientId: AZURE_CLIENT_ID,
+                clientId: "B44847b6-2c51-4888-a9b0-251cd1af998f",
                 authority: "https://login.microsoftonline.com/common",
-                redirectUri: window.location.href.split('?')[0].split('#')[0]
-            }
+                redirectUri: window.location.origin
+            },
+            cache: { cacheLocation: "sessionStorage" }
         };
 
         const msalInstance = new msal.PublicClientApplication(msalConfig);
-        let currentUserEmail = null;
 
-        const boardData = {
-            "To Do": [{ id: 1, title: "Review Azure Setup", priority: "high", dueDate: "2026-08-25" }],
-            "In Progress": [{ id: 2, title: "Configure MSAL.js", priority: "medium", dueDate: "2026-08-28" }],
-            "Completed": [{ id: 3, title: "Upload approved_users.json", priority: "low", dueDate: "2026-08-22" }]
-        };
+        let currentUser = null;
+        let tasks = [];
 
-        // Initialize MSAL and handle redirect responses if using loginRedirect
-        msalInstance.initialize().then(() => {
-            msalInstance.handleRedirectPromise().then(response => {
-                if (response) {
-                    processTokenAndVerify(response.accessToken);
-                }
-            }).catch(err => console.error(err));
+        window.addEventListener('DOMContentLoaded', async () => {
+            await msalInstance.handleRedirectPromise().catch(err => console.error(err));
+            
+            const sessionGuest = sessionStorage.getItem('isGuest');
+            const accounts = msalInstance.getAllAccounts();
+
+            if (sessionGuest === 'true') {
+                currentUser = { name: "Guest User", email: "guest@local" };
+                showBoardView();
+            } else if (accounts.length > 0) {
+                currentUser = { name: accounts[0].name, email: accounts[0].username };
+                showBoardView();
+            } else {
+                showAuthView();
+            }
         });
 
-        async function authenticateUser() {
-            const emailInput = document.getElementById("emailInput").value.trim().toLowerCase();
-            const statusDiv = document.getElementById("auth-status");
-
-            if (!emailInput) {
-                statusDiv.style.color = "var(--danger)";
-                statusDiv.innerText = "Please enter an email address.";
-                return;
-            }
-
-            // Save user email to localStorage so it persists through redirect
-            localStorage.setItem("target_user_email", emailInput);
-            statusDiv.style.color = "var(--primary)";
-            statusDiv.innerText = "Redirecting to Microsoft Sign-In...";
-
-            // Use loginRedirect instead of loginPopup to avoid block_nested_popups error
-            msalInstance.loginRedirect({
-                scopes: ["User.Read", "Files.Read"],
-                prompt: "select_account"
-            });
-        }
-
-        async function processTokenAndVerify(accessToken) {
-            const statusDiv = document.getElementById("auth-status");
-            const emailInput = localStorage.getItem("target_user_email") || "vng230@gmail.com";
-            
-            if (statusDiv) {
-                statusDiv.style.color = "var(--primary)";
-                statusDiv.innerText = "Checking OneDrive access list...";
-            }
-
+        // --- Auth Handlers ---
+        async function signInWithMicrosoft() {
             try {
-                let endpoint = "https://graph.microsoft.com/v1.0/me/drive/root:/approved_users.json:/content";
-                let response = await fetch(endpoint, {
-                    headers: { Authorization: `Bearer ${accessToken}` }
-                });
-
-                if (!response.ok) {
-                    endpoint = "https://graph.microsoft.com/v1.0/me/drive/root/children/approved_users.json/content";
-                    response = await fetch(endpoint, {
-                        headers: { Authorization: `Bearer ${accessToken}` }
-                    });
-                }
-
-                if (!response.ok) {
-                    throw new Error("Could not find 'approved_users.json' in your OneDrive root folder.");
-                }
-
-                const data = await response.json();
-                const rawList = Array.isArray(data) ? data : (data.allowedEmails || []);
-                const allowedEmails = rawList.map(e => String(e).toLowerCase());
-
-                if (allowedEmails.includes(emailInput)) {
-                    currentUserEmail = emailInput;
-                    document.getElementById("activeUserEmail").innerText = currentUserEmail;
-                    document.getElementById("auth-screen").style.display = "none";
-                    document.getElementById("app-screen").style.display = "block";
-                    renderBoard();
-                } else {
-                    if (statusDiv) {
-                        statusDiv.style.color = "var(--danger)";
-                        statusDiv.innerText = "Access denied: Email is not listed in approved_users.json";
-                    }
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                if (statusDiv) {
-                    statusDiv.style.color = "var(--danger)";
-                    statusDiv.innerText = error.message || "Authentication failed. Please try again.";
-                }
+                const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+                currentUser = { name: loginResponse.account.name, email: loginResponse.account.username };
+                sessionStorage.removeItem('isGuest');
+                showBoardView();
+            } catch (err) {
+                console.error("Microsoft Sign-In Failed:", err);
             }
         }
 
-        function renderBoard() {
-            const renderCategory = (containerId, tasks) => {
-                const container = document.getElementById(containerId);
-                container.innerHTML = tasks.map(task => `
-                    <div class="task-card">
-                        <h4>${task.title}</h4>
-                        <p>Priority: ${task.priority} | Due: ${task.dueDate}</p>
-                    </div>
-                `).join("");
-            };
-
-            renderCategory("todo-tasks", boardData["To Do"]);
-            renderCategory("inprogress-tasks", boardData["In Progress"]);
-            renderCategory("completed-tasks", boardData["Completed"]);
+        function loginAsGuest() {
+            sessionStorage.setItem('isGuest', 'true');
+            currentUser = { name: "Guest User", email: "guest@local" };
+            showBoardView();
         }
 
         function logout() {
-            currentUserEmail = null;
-            localStorage.removeItem("target_user_email");
-            document.getElementById("app-screen").style.display = "none";
-            document.getElementById("auth-screen").style.display = "block";
-            document.getElementById("auth-status").innerText = "";
+            sessionStorage.clear();
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                msalInstance.logoutPopup().then(() => location.reload());
+            } else {
+                location.reload();
+            }
+        }
+
+        function showAuthView() {
+            document.getElementById("authScreen").style.display = "flex";
+            document.getElementById("boardApp").style.display = "none";
+        }
+
+        function showBoardView() {
+            document.getElementById("authScreen").style.display = "none";
+            document.getElementById("boardApp").style.display = "block";
+            document.getElementById("activeUserEmail").innerText = `${currentUser.name} (${currentUser.email})`;
+            loadTasks();
+            renderBoard();
+        }
+
+        // --- Task Data Storage ---
+        function loadTasks() {
+            const storageKey = `kanban_tasks_${currentUser.email}`;
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                tasks = JSON.parse(saved);
+            } else {
+                tasks = [
+                    { 
+                        id: 1, 
+                        title: "Setup Project Scope", 
+                        description: "Initial task setup for board prototype",
+                        priority: "high", 
+                        dueDate: "2026-08-25", 
+                        status: "To Do",
+                        subtasks: [{ id: 101, title: "Review requirements", completed: false }]
+                    }
+                ];
+                saveTasks();
+            }
+        }
+
+        function saveTasks() {
+            const storageKey = `kanban_tasks_${currentUser.email}`;
+            localStorage.setItem(storageKey, JSON.stringify(tasks));
+            renderBoard();
+        }
+
+        // --- Modal & Editing Handlers ---
+        function openCreateModal() {
+            document.getElementById("modalTitleText").innerText = "Add New Task";
+            document.getElementById("editingTaskId").value = "";
+            document.getElementById("modalTitle").value = "";
+            document.getElementById("modalDesc").value = "";
+            document.getElementById("modalPriority").value = "medium";
+            document.getElementById("modalDueDate").value = "";
+            document.getElementById("subtasksListContainer").innerHTML = "";
+            addSubtaskField();
+            document.getElementById("taskModal").style.display = "flex";
+        }
+
+        function openEditModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            document.getElementById("modalTitleText").innerText = "Edit Task";
+            document.getElementById("editingTaskId").value = task.id;
+            document.getElementById("modalTitle").value = task.title;
+            document.getElementById("modalDesc").value = task.description || "";
+            document.getElementById("modalPriority").value = task.priority;
+            document.getElementById("modalDueDate").value = task.dueDate !== "No Due Date" ? task.dueDate : "";
+
+            const container = document.getElementById("subtasksListContainer");
+            container.innerHTML = "";
+
+            if (task.subtasks && task.subtasks.length > 0) {
+                task.subtasks.forEach(sub => {
+                    addSubtaskField(sub.title, sub.completed, sub.id);
+                });
+            } else {
+                addSubtaskField();
+            }
+
+            document.getElementById("taskModal").style.display = "flex";
+        }
+
+        function closeCreateModal() {
+            document.getElementById("taskModal").style.display = "none";
+        }
+
+        function addSubtaskField(title = "", completed = false, id = null) {
+            const container = document.getElementById("subtasksListContainer");
+            const div = document.createElement("div");
+            div.className = "subtask-input-row";
+            const subId = id || Date.now() + Math.random();
+            div.innerHTML = `
+                <input type="checkbox" class="subtask-status" ${completed ? 'checked' : ''}>
+                <input type="text" class="subtask-input" value="${title}" placeholder="Sub-activity detail..." data-id="${subId}">
+                <button type="button" class="btn-remove-sub" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function saveTaskFromModal() {
+            const editingId = document.getElementById("editingTaskId").value;
+            const title = document.getElementById("modalTitle").value.trim();
+            const desc = document.getElementById("modalDesc").value.trim();
+            const priority = document.getElementById("modalPriority").value;
+            const dueDate = document.getElementById("modalDueDate").value || "No Due Date";
+
+            if (!title) {
+                alert("Task Name is required!");
+                return;
+            }
+
+            const subtaskRows = document.querySelectorAll(".subtask-input-row");
+            const subtasks = [];
+            subtaskRows.forEach((row, idx) => {
+                const input = row.querySelector(".subtask-input");
+                const checkbox = row.querySelector(".subtask-status");
+                if (input.value.trim()) {
+                    subtasks.push({
+                        id: Number(input.dataset.id) || (Date.now() + idx),
+                        title: input.value.trim(),
+                        completed: checkbox.checked
+                    });
+                }
+            });
+
+            if (editingId) {
+                const taskIndex = tasks.findIndex(t => t.id === Number(editingId));
+                if (taskIndex !== -1) {
+                    tasks[taskIndex].title = title;
+                    tasks[taskIndex].description = desc;
+                    tasks[taskIndex].priority = priority;
+                    tasks[taskIndex].dueDate = dueDate;
+                    tasks[taskIndex].subtasks = subtasks;
+                }
+            } else {
+                tasks.push({
+                    id: Date.now(),
+                    title: title,
+                    description: desc,
+                    priority: priority,
+                    dueDate: dueDate,
+                    status: "To Do",
+                    subtasks: subtasks
+                });
+            }
+
+            saveTasks();
+            closeCreateModal();
+        }
+
+        function toggleSubtask(taskId, subtaskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task && task.subtasks) {
+                const sub = task.subtasks.find(s => s.id === subtaskId);
+                if (sub) {
+                    sub.completed = !sub.completed;
+                    saveTasks();
+                }
+            }
+        }
+
+        function moveTask(id, nextStatus) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.status = nextStatus;
+                saveTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveTasks();
+        }
+
+        // --- Drag and Drop ---
+        function drag(event, id) {
+            event.dataTransfer.setData("taskId", id);
+            event.target.classList.add("dragging");
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drop(event, newStatus) {
+            event.preventDefault();
+            const taskId = event.dataTransfer.getData("taskId");
+            if (taskId) {
+                moveTask(Number(taskId), newStatus);
+            }
+        }
+
+        // --- Render Board UI ---
+        function renderBoard() {
+            const todoContainer = document.getElementById("todo-tasks");
+            const inprogressContainer = document.getElementById("inprogress-tasks");
+            const completedContainer = document.getElementById("completed-tasks");
+
+            todoContainer.innerHTML = "";
+            inprogressContainer.innerHTML = "";
+            completedContainer.innerHTML = "";
+
+            let todoCount = 0, inprogressCount = 0, completedCount = 0;
+
+            tasks.forEach(task => {
+                const card = document.createElement("div");
+                card.className = "task-card";
+                card.draggable = true;
+                card.ondragstart = (e) => drag(e, task.id);
+                card.ondragend = (e) => e.target.classList.remove("dragging");
+
+                let nextButtons = "";
+                if (task.status === "To Do") {
+                    nextButtons = `<button class="btn-action" onclick="moveTask(${task.id}, 'In Progress')">In Progress →</button>`;
+                    todoCount++;
+                } else if (task.status === "In Progress") {
+                    nextButtons = `
+                        <button class="btn-action" onclick="moveTask(${task.id}, 'To Do')">← To Do</button>
+                        <button class="btn-action" onclick="moveTask(${task.id}, 'Completed')">Completed →</button>
+                    `;
+                    inprogressCount++;
+                } else if (task.status === "Completed") {
+                    nextButtons = `<button class="btn-action" onclick="moveTask(${task.id}, 'In Progress')">← In Progress</button>`;
+                    completedCount++;
+                }
+
+                let subtasksHTML = "";
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const completedSubCount = task.subtasks.filter(s => s.completed).length;
+                    subtasksHTML = `
+                        <div class="subtasks-section">
+                            <div class="subtasks-title">Sub-Activities (${completedSubCount}/${task.subtasks.length})</div>
+                            ${task.subtasks.map(s => `
+                                <div class="subtask-item ${s.completed ? 'completed' : ''}">
+                                    <input type="checkbox" ${s.completed ? 'checked' : ''} onclick="toggleSubtask(${task.id}, ${s.id})">
+                                    <span>${s.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <h4>${task.title}</h4>
+                    ${task.description ? `<div class="task-desc">${task.description}</div>` : ''}
+                    <div class="task-meta">
+                        <span class="badge badge-${task.priority}">${task.priority}</span>
+                        <span>Due: ${task.dueDate}</span>
+                    </div>
+                    ${subtasksHTML}
+                    <div class="card-actions">
+                        <button class="btn-action btn-edit" onclick="openEditModal(${task.id})">✎ Edit</button>
+                        ${nextButtons}
+                        <button class="btn-action btn-delete" onclick="deleteTask(${task.id})">Delete</button>
+                    </div>
+                `;
+
+                if (task.status === "To Do") todoContainer.appendChild(card);
+                else if (task.status === "In Progress") inprogressContainer.appendChild(card);
+                else if (task.status === "Completed") completedContainer.appendChild(card);
+            });
+
+            document.getElementById("count-todo").innerText = `(${todoCount})`;
+            document.getElementById("count-inprogress").innerText = `(${inprogressCount})`;
+            document.getElementById("count-completed").innerText = `(${completedCount})`;
         }
     </script>
 </body>
