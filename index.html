@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <!-- MSAL.js Library -->
+    <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #0066cc;
+            --danger: #d9534f;
+            --bg: #eef2f5;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Authentication Screen */
+        .auth-container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-container h2 {
+            margin-bottom: 8px;
+            color: #1a252f;
+        }
+
+        .auth-container p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #0052a3;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        /* Task Board Application Screen */
+        .board-container {
+            display: none;
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .board-columns {
+            display: flex;
+            gap: 20px;
+        }
+
+        .column {
+            flex: 1;
+            background-color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 400px;
+        }
+
+        .column h3 {
+            margin-top: 0;
+            color: #334155;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 8px;
+        }
+
+        .task-card {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .task-card h4 {
+            margin: 0 0 5px 0;
+            color: #1e293b;
+        }
+
+        .task-card p {
+            margin: 0;
+            font-size: 0.8em;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Authentication View -->
+    <div class="auth-container" id="auth-screen">
+        <h2>Task Board Login</h2>
+        <p>Verify your account against your OneDrive access list.</p>
+        
+        <div class="input-group">
+            <input type="email" id="emailInput" placeholder="Enter your email address" value="vng230@gmail.com">
+        </div>
+        
+        <button class="btn-primary" onclick="authenticateUser()">Sign In with OneDrive</button>
+        
+        <div class="status-message" id="auth-status"></div>
+    </div>
+
+    <!-- 2. Application Dashboard View -->
+    <div class="board-container" id="app-screen">
+        <div class="board-header">
+            <h2>OneDrive Task Board</h2>
+            <div>
+                <span id="activeUserEmail" style="margin-right: 15px; font-size: 0.9em;"></span>
+                <button onclick="logout()" style="padding: 6px 12px; cursor: pointer;">Sign Out</button>
+            </div>
+        </div>
+
+        <div class="board-columns" id="boardColumns">
+            <div class="column">
+                <h3>To Do</h3>
+                <div id="todo-tasks"></div>
+            </div>
+            <div class="column">
+                <h3>In Progress</h3>
+                <div id="inprogress-tasks"></div>
+            </div>
+            <div class="column">
+                <h3>Completed</h3>
+                <div id="completed-tasks"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configured Azure Application (client) ID
+        const AZURE_CLIENT_ID = "b44847b6-2c51-4888-a9b0-251cd1af998f";
+
+        const msalConfig = {
+            auth: {
+                clientId: AZURE_CLIENT_ID,
+                authority: "https://login.microsoftonline.com/common",
+                redirectUri: window.location.href.split('?')[0].split('#')[0]
+            }
+        };
+
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+        let currentUserEmail = null;
+
+        const boardData = {
+            "To Do": [{ id: 1, title: "Review Azure Setup", priority: "high", dueDate: "2026-08-25" }],
+            "In Progress": [{ id: 2, title: "Configure MSAL.js", priority: "medium", dueDate: "2026-08-28" }],
+            "Completed": [{ id: 3, title: "Upload approved_users.json", priority: "low", dueDate: "2026-08-22" }]
+        };
+
+        // Initialize MSAL and handle any login redirects
+        msalInstance.initialize().then(() => {
+            msalInstance.handleRedirectPromise().catch(err => console.error(err));
+        });
+
+        // AUTHENTICATE & VERIFY ONEDRIVE FILE
+        async function authenticateUser() {
+            const emailInput = document.getElementById("emailInput").value.trim().toLowerCase();
+            const statusDiv = document.getElementById("auth-status");
+
+            if (!emailInput) {
+                statusDiv.style.color = "var(--danger)";
+                statusDiv.innerText = "Please enter an email address.";
+                return;
+            }
+
+            statusDiv.style.color = "var(--primary)";
+            statusDiv.innerText = "Opening Microsoft Sign-In...";
+
+            try {
+                // Request BOTH required scopes explicitly during popup
+                const loginResponse = await msalInstance.loginPopup({ 
+                    scopes: ["User.Read", "Files.Read"],
+                    prompt: "select_account"
+                });
+                
+                const accessToken = loginResponse.accessToken;
+                statusDiv.innerText = "Checking OneDrive access list...";
+
+                // Fetch file contents from OneDrive Graph API
+                let endpoint = "https://graph.microsoft.com/v1.0/me/drive/root:/approved_users.json:/content";
+                let response = await fetch(endpoint, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+
+                // Fallback endpoint if root colon-path format is restricted
+                if (!response.ok) {
+                    endpoint = "https://graph.microsoft.com/v1.0/me/drive/root/children/approved_users.json/content";
+                    response = await fetch(endpoint, {
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    });
+                }
+
+                if (!response.ok) {
+                    throw new Error("Could not find 'approved_users.json' in your OneDrive root folder.");
+                }
+
+                const data = await response.json();
+                
+                // Parse either direct array format ["user@gmail.com"] OR object format { "allowedEmails": [...] }
+                const rawList = Array.isArray(data) ? data : (data.allowedEmails || []);
+                const allowedEmails = rawList.map(e => String(e).toLowerCase());
+
+                if (allowedEmails.includes(emailInput)) {
+                    currentUserEmail = emailInput;
+                    document.getElementById("activeUserEmail").innerText = currentUserEmail;
+                    document.getElementById("auth-screen").style.display = "none";
+                    document.getElementById("app-screen").style.display = "block";
+                    renderBoard();
+                } else {
+                    statusDiv.style.color = "var(--danger)";
+                    statusDiv.innerText = "Access denied: Email is not listed in approved_users.json";
+                }
+
+            } catch (error) {
+                console.error("Auth Error:", error);
+                statusDiv.style.color = "var(--danger)";
+                statusDiv.innerText = error.message || "Authentication failed. Please try again.";
+            }
+        }
+
+        function renderBoard() {
+            const renderCategory = (containerId, tasks) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = tasks.map(task => `
+                    <div class="task-card">
+                        <h4>${task.title}</h4>
+                        <p>Priority: ${task.priority} | Due: ${task.dueDate}</p>
+                    </div>
+                `).join("");
+            };
+
+            renderCategory("todo-tasks", boardData["To Do"]);
+            renderCategory("inprogress-tasks", boardData["In Progress"]);
+            renderCategory("completed-tasks", boardData["Completed"]);
+        }
+
+        function logout() {
+            currentUserEmail = null;
+            document.getElementById("app-screen").style.display = "none";
+            document.getElementById("auth-screen").style.display = "block";
+            document.getElementById("auth-status").innerText = "";
+        }
+    </script>
+</body>
+</html>
