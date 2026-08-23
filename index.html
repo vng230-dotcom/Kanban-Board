@@ -290,7 +290,7 @@
             try {
                 let account = msalInstance.getAllAccounts()[0];
                 
-                // Prompt for Microsoft authentication if no active session
+                // Prompt for Microsoft sign-in popup if no active MS session
                 if (!account) {
                     const loginResponse = await msalInstance.loginPopup({
                         scopes: ["User.Read", "Sites.ReadWrite.All"]
@@ -305,7 +305,7 @@
 
                 const endpoint = `https://graph.microsoft.com/v1.0/me/sites/root/lists/${MS_LIST_ID}/items`;
                 
-                await fetch(endpoint, {
+                const response = await fetch(endpoint, {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${tokenResponse.accessToken}`,
@@ -314,11 +314,16 @@
                     body: JSON.stringify({
                         fields: {
                             Title: userObj.name,
-                            UserEmail: userObj.email,
-                            AuthType: authType
+                            User_x0020_ID: userObj.email, // Internal SharePoint name for 'User ID'
+                            Password: authType             // Internal name for the third column
                         }
                     })
                 });
+
+                if (!response.ok) {
+                    const errorDetails = await response.json();
+                    console.error("Microsoft Graph List API Error:", errorDetails);
+                }
             } catch (err) {
                 console.warn("Could not log activity to Microsoft List:", err);
             }
