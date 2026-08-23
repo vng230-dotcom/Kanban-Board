@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Manager - Microsoft & Guest Auth</title>
-    <!-- Microsoft Authentication Library (MSAL.js) -->
+    <!-- MSAL.js Browser SDK -->
     <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
     <style>
         :root {
@@ -12,7 +12,6 @@
             --primary-hover: #0052a3;
             --danger: #d9534f;
             --bg: #f4f7f6;
-            --card-bg: #ffffff;
             --column-bg: #e2e8f0;
         }
 
@@ -27,7 +26,7 @@
             min-height: 100vh;
         }
 
-        /* Auth Screen Styling */
+        /* Authentication View */
         .auth-container {
             display: flex;
             flex-direction: column;
@@ -47,17 +46,8 @@
             width: 90%;
         }
 
-        .auth-card h1 {
-            margin-top: 0;
-            color: #1e293b;
-            font-size: 1.8em;
-        }
-
-        .auth-card p {
-            color: #64748b;
-            font-size: 0.95em;
-            margin-bottom: 25px;
-        }
+        .auth-card h1 { margin-top: 0; color: #1e293b; font-size: 1.8em; }
+        .auth-card p { color: #64748b; font-size: 0.95em; margin-bottom: 25px; }
 
         .auth-buttons {
             display: flex;
@@ -77,32 +67,11 @@
             transition: transform 0.1s, background 0.2s;
         }
 
-        .btn-auth:active {
-            transform: scale(0.98);
-        }
-
-        .btn-msft {
-            background-color: #2f2f2f;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .btn-msft:hover {
-            background-color: #1a1a1a;
-        }
-
-        .btn-guest {
-            background-color: #cbd5e1;
-            color: #334155;
-        }
-
-        .btn-guest:hover {
-            background-color: #94a3b8;
-            color: white;
-        }
+        .btn-auth:active { transform: scale(0.98); }
+        .btn-msft { background-color: #2f2f2f; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-msft:hover { background-color: #1a1a1a; }
+        .btn-guest { background-color: #cbd5e1; color: #334155; }
+        .btn-guest:hover { background-color: #94a3b8; color: white; }
 
         .error-msg {
             color: #d9381e;
@@ -111,7 +80,7 @@
             display: none;
         }
 
-        /* App Main Board Styling */
+        /* Board View */
         .board-container {
             display: none;
             width: 95%;
@@ -131,12 +100,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
+        .user-info { display: flex; align-items: center; gap: 12px; }
         .btn-logout {
             background: rgba(255, 255, 255, 0.2);
             color: white;
@@ -146,17 +110,9 @@
             cursor: pointer;
             font-size: 0.85em;
         }
+        .btn-logout:hover { background: rgba(255, 255, 255, 0.3); }
 
-        .btn-logout:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .top-action-bar {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 15px;
-        }
-
+        .top-action-bar { display: flex; justify-content: flex-end; margin-bottom: 15px; }
         .btn-create {
             background-color: #10b981;
             color: white;
@@ -166,18 +122,10 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 0.95em;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        .btn-create:hover { background-color: #059669; }
 
-        .btn-create:hover {
-            background-color: #059669;
-        }
-
-        .board-columns {
-            display: flex;
-            gap: 20px;
-        }
-
+        .board-columns { display: flex; gap: 20px; }
         .column {
             flex: 1;
             background-color: var(--column-bg);
@@ -203,48 +151,14 @@
             margin-bottom: 12px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.06);
             cursor: grab;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .task-card:active {
-            cursor: grabbing;
-        }
+        .task-card.dragging { opacity: 0.5; transform: scale(0.98); }
+        .task-card h4 { margin: 0 0 8px 0; color: #1e293b; font-size: 1em; }
+        .task-desc { font-size: 0.85em; color: #475569; margin-bottom: 10px; }
+        .task-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.8em; color: #64748b; margin: 10px 0; }
 
-        .task-card.dragging {
-            opacity: 0.5;
-            transform: scale(0.98);
-        }
-
-        .task-card h4 {
-            margin: 0 0 8px 0;
-            color: #1e293b;
-            font-size: 1em;
-        }
-
-        .task-desc {
-            font-size: 0.85em;
-            color: #475569;
-            margin-bottom: 10px;
-        }
-
-        .task-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.8em;
-            color: #64748b;
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        .badge {
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.7em;
-        }
-
+        .badge { padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 0.7em; }
         .badge-high { background-color: #ffebe9; color: #d9381e; }
         .badge-medium { background-color: #fff8e6; color: #b7791f; }
         .badge-low { background-color: #e6fffa; color: #234e52; }
@@ -274,64 +188,18 @@
             margin-bottom: 4px;
         }
 
-        .subtask-item input[type="checkbox"] {
-            cursor: pointer;
-        }
+        .subtask-item.completed span { text-decoration: line-through; color: #94a3b8; }
 
-        .subtask-item.completed span {
-            text-decoration: line-through;
-            color: #94a3b8;
-        }
+        .card-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        .btn-action { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; }
+        .btn-edit { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
+        .btn-delete { color: var(--danger); border-color: #f87171; background: #fef2f2; margin-left: auto; }
 
-        .card-actions {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn-action {
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75em;
-        }
-
-        .btn-action:hover {
-            background: #e2e8f0;
-        }
-
-        .btn-edit {
-            background: #e0f2fe;
-            border-color: #7dd3fc;
-            color: #0369a1;
-        }
-
-        .btn-edit:hover {
-            background: #bae6fd;
-        }
-
-        .btn-delete {
-            color: var(--danger);
-            border-color: #f87171;
-            background: #fef2f2;
-            margin-left: auto;
-        }
-
-        .btn-delete:hover {
-            background: #fee2e2;
-        }
-
-        /* Modal Overlay */
+        /* Modal Popup */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.5);
             backdrop-filter: blur(4px);
             z-index: 1000;
@@ -339,94 +207,23 @@
             align-items: center;
         }
 
-        .modal {
-            background: white;
-            width: 90%;
-            max-width: 500px;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
+        .modal { background: white; width: 90%; max-width: 500px; padding: 24px; border-radius: 12px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.85em; font-weight: bold; color: #475569; margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        
+        .subtask-input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .subtask-input-row input[type="text"] { flex: 1; }
+        .btn-remove-sub { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+        .btn-add-sub { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
 
-        .modal h3 {
-            margin-top: 0;
-            color: #1e293b;
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85em;
-            font-weight: bold;
-            color: #475569;
-            margin-bottom: 6px;
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 0.9em;
-        }
-
-        .subtask-input-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-            align-items: center;
-        }
-
-        .subtask-input-row input[type="text"] {
-            flex: 1;
-        }
-
-        .btn-remove-sub {
-            background: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fca5a5;
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-
-        .btn-add-sub {
-            background: #e2e8f0;
-            border: 1px solid #cbd5e1;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-secondary {
-            background: #cbd5e1;
-            color: #334155;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-secondary { background: #cbd5e1; color: #334155; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- 1. Authentication Screen -->
+    <!-- 1. Authentication View -->
     <div class="auth-container" id="authScreen">
         <div class="auth-card">
             <h1>Task Board</h1>
@@ -444,7 +241,7 @@
         </div>
     </div>
 
-    <!-- 2. Main Board View -->
+    <!-- 2. Kanban Board View -->
     <div class="board-container" id="boardApp">
         <div class="board-header">
             <h2 style="margin: 0;">Task Board</h2>
@@ -476,7 +273,7 @@
         </div>
     </div>
 
-    <!-- 3. Modal Popup for Creating / Editing Cards -->
+    <!-- 3. Task Edit/Create Modal Popup -->
     <div class="modal-overlay" id="taskModal">
         <div class="modal">
             <h3 id="modalTitleText">Add New Task</h3>
@@ -521,7 +318,7 @@
     </div>
 
     <script>
-        // --- MSAL Configuration ---
+        // --- MSAL & Target List Configurations ---
         const msalConfig = {
             auth: {
                 clientId: "B44847b6-2c51-4888-a9b0-251cd1af998f",
@@ -534,10 +331,14 @@
             }
         };
 
+        const MS_LIST_ID = "55818cd3-5188-444e-a368-8836002541c9";
+        const loginScopes = ["User.Read", "Sites.ReadWrite.All"];
+
         const msalInstance = new msal.PublicClientApplication(msalConfig);
         let currentUser = null;
         let tasks = [];
 
+        // --- Auth Initialization ---
         window.addEventListener('DOMContentLoaded', async () => {
             try {
                 const redirectResponse = await msalInstance.handleRedirectPromise();
@@ -545,6 +346,7 @@
                 if (redirectResponse) {
                     currentUser = { name: redirectResponse.account.name, email: redirectResponse.account.username };
                     localStorage.setItem('authType', 'msft');
+                    await logUserToMicrosoftList(currentUser, "Microsoft");
                     showBoardView();
                     return;
                 }
@@ -566,13 +368,54 @@
             }
         });
 
-        // --- Auth Handlers ---
         async function signInWithMicrosoft() {
             hideError();
             try {
-                await msalInstance.loginRedirect({ scopes: ["User.Read"] });
+                await msalInstance.loginRedirect({ scopes: loginScopes });
             } catch (err) {
                 showError(err.message);
+            }
+        }
+
+        // --- Microsoft Graph List Logging ---
+        async function logUserToMicrosoftList(userObj, authType) {
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                if (accounts.length === 0) return;
+
+                const tokenResponse = await msalInstance.acquireTokenSilent({
+                    scopes: loginScopes,
+                    account: accounts[0]
+                });
+
+                // Target Endpoint for Personal Microsoft List under "My lists"
+                const endpoint = `https://graph.microsoft.com/v1.0/me/sites/root/lists/${MS_LIST_ID}/items`;
+
+                const payload = {
+                    fields: {
+                        Title: userObj.name || "Guest User",
+                        UserEmail: userObj.email,
+                        AuthType: authType
+                    }
+                };
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${tokenResponse.accessToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    console.log("Activity logged to Microsoft List successfully.");
+                } else {
+                    const errData = await response.json();
+                    console.error("List logging endpoint error:", errData);
+                }
+            } catch (err) {
+                console.error("Failed to execute Microsoft List logging:", err);
             }
         }
 
@@ -592,6 +435,7 @@
             }
         }
 
+        // --- Navigation Functions ---
         function showAuthView() {
             document.getElementById("authScreen").style.display = "flex";
             document.getElementById("boardApp").style.display = "none";
@@ -615,26 +459,11 @@
             document.getElementById("authError").style.display = "none";
         }
 
-        // --- Task Data Storage ---
+        // --- Task Storage Mechanics ---
         function loadTasks() {
             const storageKey = `kanban_tasks_${currentUser.email}`;
             const saved = localStorage.getItem(storageKey);
-            if (saved) {
-                tasks = JSON.parse(saved);
-            } else {
-                tasks = [
-                    { 
-                        id: 1, 
-                        title: "Setup Project Scope", 
-                        description: "Initial task setup for board prototype",
-                        priority: "high", 
-                        dueDate: "2026-08-25", 
-                        status: "To Do",
-                        subtasks: [{ id: 101, title: "Review requirements", completed: false }]
-                    }
-                ];
-                saveTasks();
-            }
+            tasks = saved ? JSON.parse(saved) : [];
         }
 
         function saveTasks() {
@@ -643,7 +472,7 @@
             renderBoard();
         }
 
-        // --- Modal & Editing Handlers ---
+        // --- Modal & Sub-activity Controls ---
         function openCreateModal() {
             document.getElementById("modalTitleText").innerText = "Add New Task";
             document.getElementById("editingTaskId").value = "";
@@ -671,9 +500,7 @@
             container.innerHTML = "";
 
             if (task.subtasks && task.subtasks.length > 0) {
-                task.subtasks.forEach(sub => {
-                    addSubtaskField(sub.title, sub.completed, sub.id);
-                });
+                task.subtasks.forEach(sub => addSubtaskField(sub.title, sub.completed, sub.id));
             } else {
                 addSubtaskField();
             }
@@ -773,7 +600,7 @@
             saveTasks();
         }
 
-        // --- Drag and Drop ---
+        // --- Drag and Drop Mechanics ---
         function drag(event, id) {
             event.dataTransfer.setData("taskId", id);
             event.target.classList.add("dragging");
@@ -786,12 +613,10 @@
         function drop(event, newStatus) {
             event.preventDefault();
             const taskId = event.dataTransfer.getData("taskId");
-            if (taskId) {
-                moveTask(Number(taskId), newStatus);
-            }
+            if (taskId) moveTask(Number(taskId), newStatus);
         }
 
-        // --- Render Board UI ---
+        // --- UI Rendering Engine ---
         function renderBoard() {
             const todoContainer = document.getElementById("todo-tasks");
             const inprogressContainer = document.getElementById("inprogress-tasks");
