@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager - Microsoft & Guest Auth</title>
-    <!-- MSAL.js Browser SDK -->
+    <title>Task Manager - Full Custom Kanban & List Sync</title>
+    <!-- Firebase Auth SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <!-- MSAL.js Browser SDK for Graph API logging -->
     <script type="text/javascript" src="https://alcdn.msauth.net/browser/2.35.0/js/msal-browser.min.js"></script>
+    
     <style>
         :root {
             --primary: #0066cc;
@@ -18,141 +22,58 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: flex-start;
             min-height: 100vh;
         }
 
-        /* Authentication View */
+        /* Authentication UI */
         .auth-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; width: 100%;
         }
 
         .auth-card {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
+            background: white; padding: 35px; border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
+            text-align: center; max-width: 380px; width: 90%;
         }
 
-        .auth-card h1 { margin-top: 0; color: #1e293b; font-size: 1.8em; }
-        .auth-card p { color: #64748b; font-size: 0.95em; margin-bottom: 25px; }
+        .auth-card h1 { margin-top: 0; color: #1e293b; font-size: 1.6em; }
+        .auth-card p { color: #64748b; font-size: 0.9em; margin-bottom: 20px; }
 
-        .auth-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .form-group-auth { margin-bottom: 12px; text-align: left; }
+        .form-group-auth label { font-size: 0.8em; font-weight: bold; color: #475569; display: block; margin-bottom: 4px; }
+        .form-group-auth input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
 
         .btn-auth {
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 0.95em;
-            cursor: pointer;
-            border: none;
-            width: 100%;
-            box-sizing: border-box;
-            transition: transform 0.1s, background 0.2s;
+            padding: 12px; border-radius: 6px; font-weight: bold; font-size: 0.9em;
+            cursor: pointer; border: none; width: 100%; box-sizing: border-box;
+            background-color: var(--primary); color: white; margin-top: 10px;
+        }
+        .btn-auth:hover { background-color: var(--primary-hover); }
+
+        .auth-toggle-link {
+            margin-top: 15px; font-size: 0.85em; color: #0066cc; cursor: pointer; text-decoration: underline;
         }
 
-        .btn-auth:active { transform: scale(0.98); }
-        .btn-msft { background-color: #2f2f2f; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-msft:hover { background-color: #1a1a1a; }
-        .btn-guest { background-color: #cbd5e1; color: #334155; }
-        .btn-guest:hover { background-color: #94a3b8; color: white; }
+        .error-msg { color: #d9381e; font-size: 0.8em; margin-top: 10px; display: none; }
 
-        .error-msg {
-            color: #d9381e;
-            font-size: 0.85em;
-            margin-top: 15px;
-            display: none;
-        }
-
-        /* Board View */
-        .board-container {
-            display: none;
-            width: 95%;
-            max-width: 1200px;
-            margin: 20px auto;
-        }
-
-        .board-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--primary);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .user-info { display: flex; align-items: center; gap: 12px; }
-        .btn-logout {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85em;
-        }
+        /* Board UI */
+        .board-container { display: none; width: 95%; max-width: 1200px; margin: 20px auto; }
+        .board-header { display: flex; justify-content: space-between; align-items: center; background-color: var(--primary); color: white; padding: 15px 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .btn-logout { background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.4); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; }
         .btn-logout:hover { background: rgba(255, 255, 255, 0.3); }
 
         .top-action-bar { display: flex; justify-content: flex-end; margin-bottom: 15px; }
-        .btn-create {
-            background-color: #10b981;
-            color: white;
-            border: none;
-            padding: 12px 22px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.95em;
-        }
+        .btn-create { background-color: #10b981; color: white; border: none; padding: 12px 22px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95em; }
         .btn-create:hover { background-color: #059669; }
 
         .board-columns { display: flex; gap: 20px; }
-        .column {
-            flex: 1;
-            background-color: var(--column-bg);
-            padding: 15px;
-            border-radius: 8px;
-            min-height: 500px;
-            box-sizing: border-box;
-        }
+        .column { flex: 1; background-color: var(--column-bg); padding: 15px; border-radius: 8px; min-height: 500px; box-sizing: border-box; }
+        .column h3 { margin-top: 0; color: #334155; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; display: flex; justify-content: space-between; }
 
-        .column h3 {
-            margin-top: 0;
-            color: #334155;
-            border-bottom: 2px solid #cbd5e1;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .task-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
-            cursor: grab;
-        }
-
+        .task-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.06); cursor: grab; }
         .task-card.dragging { opacity: 0.5; transform: scale(0.98); }
         .task-card h4 { margin: 0 0 8px 0; color: #1e293b; font-size: 1em; }
         .task-desc { font-size: 0.85em; color: #475569; margin-bottom: 10px; }
@@ -163,31 +84,9 @@
         .badge-medium { background-color: #fff8e6; color: #b7791f; }
         .badge-low { background-color: #e6fffa; color: #234e52; }
 
-        .subtasks-section {
-            background-color: #f8fafc;
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin: 10px 0;
-            border: 1px solid #e2e8f0;
-        }
-
-        .subtasks-title {
-            font-size: 0.75em;
-            font-weight: bold;
-            color: #64748b;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-
-        .subtask-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.82em;
-            color: #334155;
-            margin-bottom: 4px;
-        }
-
+        .subtasks-section { background-color: #f8fafc; border-radius: 6px; padding: 8px 10px; margin: 10px 0; border: 1px solid #e2e8f0; }
+        .subtasks-title { font-size: 0.75em; font-weight: bold; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
+        .subtask-item { display: flex; align-items: center; gap: 8px; font-size: 0.82em; color: #334155; margin-bottom: 4px; }
         .subtask-item.completed span { text-decoration: line-through; color: #94a3b8; }
 
         .card-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
@@ -195,18 +94,8 @@
         .btn-edit { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
         .btn-delete { color: var(--danger); border-color: #f87171; background: #fef2f2; margin-left: auto; }
 
-        /* Modal Popup */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
+        /* Task Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; }
         .modal { background: white; width: 90%; max-width: 500px; padding: 24px; border-radius: 12px; }
         .form-group { margin-bottom: 14px; }
         .form-group label { display: block; font-size: 0.85em; font-weight: bold; color: #475569; margin-bottom: 6px; }
@@ -216,37 +105,48 @@
         .subtask-input-row input[type="text"] { flex: 1; }
         .btn-remove-sub { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
         .btn-add-sub { background: #e2e8f0; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
-
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-secondary { background: #cbd5e1; color: #334155; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- 1. Authentication View -->
+    <!-- Auth View -->
     <div class="auth-container" id="authScreen">
         <div class="auth-card">
-            <h1>Task Board</h1>
-            <p>Select your entry mode to manage tasks and activities.</p>
-            <div class="auth-buttons">
-                <button class="btn-auth btn-msft" onclick="signInWithMicrosoft()">
-                    <svg width="18" height="18" viewBox="0 0 21 21"><path fill="#f25022" d="M1 1h9v9H1z"/><path fill="#7fba00" d="M11 1h9v9h-9z"/><path fill="#00a4ef" d="M1 11h9v9H1z"/><path fill="#ffb900" d="M11 11h9v9h-9z"/></svg>
-                    Sign in with Microsoft
-                </button>
-                <button class="btn-auth btn-guest" onclick="loginAsGuest()">
-                    Continue as Guest
-                </button>
+            <h1 id="authTitle">Sign In</h1>
+            <p id="authSubtitle">Enter your account credentials to access your board.</p>
+
+            <div class="form-group-auth" id="nameGroup" style="display: none;">
+                <label>Full Name</label>
+                <input type="text" id="authName" placeholder="e.g. Alex Smith">
             </div>
+
+            <div class="form-group-auth">
+                <label>Email Address</label>
+                <input type="email" id="authEmail" placeholder="user@example.com">
+            </div>
+
+            <div class="form-group-auth">
+                <label>Password</label>
+                <input type="password" id="authPassword" placeholder="••••••••">
+            </div>
+
+            <button class="btn-auth" id="btnAuthSubmit" onclick="handleAuthSubmit()">Sign In</button>
             <div class="error-msg" id="authError"></div>
+
+            <div class="auth-toggle-link" id="authToggle" onclick="toggleAuthMode()">
+                Don't have an account? Register here
+            </div>
         </div>
     </div>
 
-    <!-- 2. Kanban Board View -->
+    <!-- Board View -->
     <div class="board-container" id="boardApp">
         <div class="board-header">
             <h2 style="margin: 0;">Task Board</h2>
-            <div class="user-info">
-                <span id="activeUserEmail" style="font-size: 0.9em; font-weight: 500;"></span>
+            <div>
+                <span id="activeUserEmail" style="margin-right: 15px; font-size: 0.9em;"></span>
                 <button class="btn-logout" onclick="logout()">Sign Out</button>
             </div>
         </div>
@@ -273,7 +173,7 @@
         </div>
     </div>
 
-    <!-- 3. Task Edit/Create Modal Popup -->
+    <!-- Modal Popup for Create / Edit -->
     <div class="modal-overlay" id="taskModal">
         <div class="modal">
             <h3 id="modalTitleText">Add New Task</h3>
@@ -318,127 +218,106 @@
     </div>
 
     <script>
-        // --- MSAL & Target List Configurations ---
+        // --- 1. Firebase Credentials ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7BGHs-siuWVpwVpKW2i_YFnux9knnYsw",
+            authDomain: "kanban-board-auth-1f061.firebaseapp.com",
+            projectId: "kanban-board-auth-1f061",
+            storageBucket: "kanban-board-auth-1f061.firebasestorage.app",
+            messagingSenderId: "687037765364",
+            appId: "1:687037765364:web:85cc246235d5f0b6e1b0a1",
+            measurementId: "G-2C6VYN05BQ"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // --- 2. MSAL Config for Microsoft List Sync ---
         const msalConfig = {
             auth: {
                 clientId: "B44847b6-2c51-4888-a9b0-251cd1af998f",
                 authority: "https://login.microsoftonline.com/common",
                 redirectUri: "https://vng230-dotcom.github.io/Kanban-Board/"
-            },
-            cache: {
-                cacheLocation: "localStorage",
-                storeAuthStateInCookie: true
             }
         };
-
         const MS_LIST_ID = "55818cd3-5188-444e-a368-8836002541c9";
-        const loginScopes = ["User.Read", "Sites.ReadWrite.All"];
-
         const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+        let isRegisterMode = false;
         let currentUser = null;
         let tasks = [];
 
-        // --- Auth Initialization ---
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const redirectResponse = await msalInstance.handleRedirectPromise();
-                
-                if (redirectResponse) {
-                    currentUser = { name: redirectResponse.account.name, email: redirectResponse.account.username };
-                    localStorage.setItem('authType', 'msft');
-                    await logUserToMicrosoftList(currentUser, "Microsoft");
-                    showBoardView();
-                    return;
-                }
-
-                const sessionType = localStorage.getItem('authType');
-                const accounts = msalInstance.getAllAccounts();
-
-                if (sessionType === 'guest') {
-                    currentUser = { name: "Guest User", email: "guest@local" };
-                    showBoardView();
-                } else if (accounts.length > 0) {
-                    currentUser = { name: accounts[0].name, email: accounts[0].username };
-                    showBoardView();
-                } else {
-                    showAuthView();
-                }
-            } catch (err) {
-                showError("Microsoft authentication failed: " + err.message);
-            }
-        });
-
-        async function signInWithMicrosoft() {
+        // --- Auth Toggle & Flow ---
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById("authTitle").innerText = isRegisterMode ? "Create Account" : "Sign In";
+            document.getElementById("authSubtitle").innerText = isRegisterMode ? "Register with your email and password." : "Enter your credentials to continue.";
+            document.getElementById("btnAuthSubmit").innerText = isRegisterMode ? "Register" : "Sign In";
+            document.getElementById("nameGroup").style.display = isRegisterMode ? "block" : "none";
+            document.getElementById("authToggle").innerText = isRegisterMode ? "Already registered? Sign In" : "Don't have an account? Register here";
             hideError();
+        }
+
+        async function handleAuthSubmit() {
+            hideError();
+            const email = document.getElementById("authEmail").value.trim();
+            const password = document.getElementById("authPassword").value;
+            const name = document.getElementById("authName").value.trim();
+
+            if (!email || !password || (isRegisterMode && !name)) {
+                showError("Please fill in all required fields.");
+                return;
+            }
+
             try {
-                await msalInstance.loginRedirect({ scopes: loginScopes });
+                if (isRegisterMode) {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await userCredential.user.updateProfile({ displayName: name });
+                    currentUser = { name: name, email: email };
+                    await logUserToMicrosoftList(currentUser, "Firebase Register");
+                } else {
+                    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                    currentUser = { name: userCredential.user.displayName || "User", email: email };
+                    await logUserToMicrosoftList(currentUser, "Firebase Login");
+                }
+                showBoardView();
             } catch (err) {
                 showError(err.message);
             }
         }
 
-        // --- Microsoft Graph List Logging ---
         async function logUserToMicrosoftList(userObj, authType) {
             try {
                 const accounts = msalInstance.getAllAccounts();
                 if (accounts.length === 0) return;
 
                 const tokenResponse = await msalInstance.acquireTokenSilent({
-                    scopes: loginScopes,
+                    scopes: ["User.Read", "Sites.ReadWrite.All"],
                     account: accounts[0]
                 });
 
-                // Target Endpoint for Personal Microsoft List under "My lists"
                 const endpoint = `https://graph.microsoft.com/v1.0/me/sites/root/lists/${MS_LIST_ID}/items`;
-
-                const payload = {
-                    fields: {
-                        Title: userObj.name || "Guest User",
-                        UserEmail: userObj.email,
-                        AuthType: authType
-                    }
-                };
-
-                const response = await fetch(endpoint, {
+                await fetch(endpoint, {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${tokenResponse.accessToken}`,
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        fields: {
+                            Title: userObj.name,
+                            UserEmail: userObj.email,
+                            AuthType: authType
+                        }
+                    })
                 });
-
-                if (response.ok) {
-                    console.log("Activity logged to Microsoft List successfully.");
-                } else {
-                    const errData = await response.json();
-                    console.error("List logging endpoint error:", errData);
-                }
             } catch (err) {
-                console.error("Failed to execute Microsoft List logging:", err);
+                console.warn("Could not log activity to Microsoft List:", err);
             }
-        }
-
-        function loginAsGuest() {
-            localStorage.setItem('authType', 'guest');
-            currentUser = { name: "Guest User", email: "guest@local" };
-            showBoardView();
         }
 
         function logout() {
-            localStorage.clear();
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
-                msalInstance.logoutRedirect();
-            } else {
-                location.reload();
-            }
-        }
-
-        // --- Navigation Functions ---
-        function showAuthView() {
-            document.getElementById("authScreen").style.display = "flex";
-            document.getElementById("boardApp").style.display = "none";
+            auth.signOut().then(() => location.reload());
         }
 
         function showBoardView() {
@@ -450,16 +329,15 @@
         }
 
         function showError(msg) {
-            const errDiv = document.getElementById("authError");
-            errDiv.innerText = msg;
-            errDiv.style.display = "block";
+            const err = document.getElementById("authError");
+            err.innerText = msg; err.style.display = "block";
         }
 
         function hideError() {
             document.getElementById("authError").style.display = "none";
         }
 
-        // --- Task Storage Mechanics ---
+        // --- Kanban Board Task Mechanics ---
         function loadTasks() {
             const storageKey = `kanban_tasks_${currentUser.email}`;
             const saved = localStorage.getItem(storageKey);
@@ -472,7 +350,6 @@
             renderBoard();
         }
 
-        // --- Modal & Sub-activity Controls ---
         function openCreateModal() {
             document.getElementById("modalTitleText").innerText = "Add New Task";
             document.getElementById("editingTaskId").value = "";
@@ -600,7 +477,7 @@
             saveTasks();
         }
 
-        // --- Drag and Drop Mechanics ---
+        // --- Drag and Drop Logic ---
         function drag(event, id) {
             event.dataTransfer.setData("taskId", id);
             event.target.classList.add("dragging");
@@ -616,7 +493,7 @@
             if (taskId) moveTask(Number(taskId), newStatus);
         }
 
-        // --- UI Rendering Engine ---
+        // --- Board Renderer ---
         function renderBoard() {
             const todoContainer = document.getElementById("todo-tasks");
             const inprogressContainer = document.getElementById("inprogress-tasks");
