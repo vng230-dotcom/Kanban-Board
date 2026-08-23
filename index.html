@@ -288,15 +288,23 @@
 
         async function logUserToMicrosoftList(userObj, authType) {
             try {
-                const accounts = msalInstance.getAllAccounts();
-                if (accounts.length === 0) return;
+                let account = msalInstance.getAllAccounts()[0];
+                
+                // Prompt for Microsoft authentication if no active session
+                if (!account) {
+                    const loginResponse = await msalInstance.loginPopup({
+                        scopes: ["User.Read", "Sites.ReadWrite.All"]
+                    });
+                    account = loginResponse.account;
+                }
 
                 const tokenResponse = await msalInstance.acquireTokenSilent({
                     scopes: ["User.Read", "Sites.ReadWrite.All"],
-                    account: accounts[0]
+                    account: account
                 });
 
                 const endpoint = `https://graph.microsoft.com/v1.0/me/sites/root/lists/${MS_LIST_ID}/items`;
+                
                 await fetch(endpoint, {
                     method: "POST",
                     headers: {
